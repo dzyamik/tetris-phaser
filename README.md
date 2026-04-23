@@ -12,7 +12,7 @@ Built with **Phaser 4** and **TypeScript**, deployed manually to **GitHub Pages*
 - Keyboard on desktop, on-screen buttons on mobile.
 - Fully offline after first load (PWA + service-worker precache).
 - Haptic feedback on supported devices.
-- Synthesized SFX (WebAudio) — no audio assets needed.
+- Synthesized SFX + looping chiptune music (WebAudio) — no audio assets needed.
 - NES-style block insets, particle bursts on line clears, screen shake on tetris.
 - Reduced-motion + scanline toggles in Settings.
 - Local high-score board (top 10, stored in `localStorage`).

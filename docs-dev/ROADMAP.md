@@ -188,6 +188,23 @@ Legend: ☐ not started · ⧗ in progress · ☑ done
 
 ---
 
+## Post-v1 polish pass ☑
+
+Landed after M6 as a single focused pass:
+- **Music loop** — 8-bar original chiptune melody scheduled via
+  `AudioContext.currentTime` in `AudioService.startMusic` (look-ahead
+  scheduler). Resolves the M5 deferred-music item. Starts in
+  `MenuScene` + `GameScene`, stops in `GameOverScene`; plays through
+  Pause / Settings / High Scores.
+- **Lock flash tween** — white overlay on the four cells of a piece
+  that just locked (skipped when the lock also cleared lines, since
+  particles already mark those). Gated by `reducedMotion`. Partial
+  resolution of the M6 deferred drop/slide-tween item.
+- **`tools/generate-icons.html`** — self-contained canvas-based page
+  that draws NES-style T-tetromino icons and downloads them as PNGs
+  (192, 512, maskable-512). Replaces the placeholder icons with
+  something brand-consistent without adding a build-time dependency.
+
 ## M7 — Optional / stretch ☐
 
 Pick any, none are required:

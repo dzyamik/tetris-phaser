@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { CANVAS_WIDTH } from '@/config/layout';
 import { theme } from '@/config/theme';
 import { storage } from '@/services/StorageService';
+import { audio } from '@/services/AudioService';
 
 type GameOverData = {
   score?: number;
@@ -54,6 +55,7 @@ export default class GameOverScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(theme.background);
+    audio.stopMusic();
 
     const cx = CANVAS_WIDTH / 2;
 

@@ -1,8 +1,9 @@
 import * as Phaser from 'phaser';
 import { initialState, reducer, type GameState } from '@/core/state';
-import type { Phase } from '@/core/state';
+import type { ActivePiece, Phase } from '@/core/state';
 import type { LineCount } from '@/core/scoring';
 import type { PieceId } from '@/core/tetromino';
+import { pieceOffsets } from '@/core/tetromino';
 import { InputBus } from '@/input/InputBus';
 import { KeyboardInput } from '@/input/KeyboardInput';
 import { TouchInput } from '@/input/TouchInput';
@@ -115,6 +116,8 @@ export default class GameScene extends Phaser.Scene {
     if (settings.scanlines) {
       this.scanlinesOverlay = this.drawScanlines();
     }
+
+    audio.startMusic();
 
     this.add.text(BOARD_X, BOARD_Y - 28, 'TETRIS', {
       color: theme.text,
@@ -233,7 +236,38 @@ export default class GameScene extends Phaser.Scene {
       this.state = reducer(this.state, action);
       this.fireActionAudio(action, before, this.state);
     }
+    const beforeTick = this.state;
     this.state = reducer(this.state, { type: 'Tick' });
+    const locked = beforeTick.active;
+    if (
+      locked &&
+      this.state.active?.id !== locked.id &&
+      this.state.lines === beforeTick.lines &&
+      this.state.phase !== 'over'
+    ) {
+      this.flashLockedCells(locked);
+    }
+  }
+
+  private flashLockedCells(piece: ActivePiece): void {
+    if (this.reducedMotion) return;
+    const offsets = pieceOffsets(piece.id, piece.rotation);
+    for (const [dc, dr] of offsets) {
+      const c = piece.col + dc;
+      const r = piece.row + dr;
+      if (r < HIDDEN_ROWS) continue;
+      const x = BOARD_X + c * CELL_SIZE + CELL_SIZE / 2;
+      const y = BOARD_Y + (r - HIDDEN_ROWS) * CELL_SIZE + CELL_SIZE / 2;
+      const flash = this.add.rectangle(x, y, CELL_SIZE - 2, CELL_SIZE - 2, 0xffffff, 0.65);
+      flash.setDepth(15);
+      this.tweens.add({
+        targets: flash,
+        alpha: 0,
+        duration: 220,
+        ease: 'Cubic.easeOut',
+        onComplete: () => flash.destroy(),
+      });
+    }
   }
 
   private fireActionAudio(action: Action, before: GameState, after: GameState): void {

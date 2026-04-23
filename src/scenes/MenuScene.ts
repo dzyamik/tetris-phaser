@@ -3,6 +3,7 @@ import { CANVAS_WIDTH } from '@/config/layout';
 import { theme } from '@/config/theme';
 import { pwa } from '@/services/PWAService';
 import { storage } from '@/services/StorageService';
+import { audio } from '@/services/AudioService';
 
 const BTN_FILL = 0x222222;
 const BTN_STROKE = 0x555555;
@@ -109,6 +110,8 @@ export default class MenuScene extends Phaser.Scene {
     const unsubscribe = pwa.onAvailabilityChange(() => this.refreshInstallButton());
     this.events.once('shutdown', unsubscribe);
     this.refreshInstallButton();
+
+    audio.startMusic();
   }
 
   private makeArrowButton(cx: number, cy: number, label: string, onTap: () => void): void {

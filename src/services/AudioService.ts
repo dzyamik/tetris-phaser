@@ -14,6 +14,27 @@ function ctor(): typeof AudioContext | null {
   return window.AudioContext ?? w.webkitAudioContext ?? null;
 }
 
+type MusicNote = { freq: number | null; beats: number };
+
+const MUSIC_TEMPO_BPM = 120;
+const MUSIC_BEAT_S = 60 / MUSIC_TEMPO_BPM;
+
+// Simple 8-bar original chiptune loop in C major. `freq: null` = rest.
+const MUSIC_SEQUENCE: ReadonlyArray<MusicNote> = [
+  { freq: 262, beats: 1 }, { freq: 330, beats: 1 }, { freq: 392, beats: 1 }, { freq: 330, beats: 1 },
+  { freq: 349, beats: 1 }, { freq: 440, beats: 1 }, { freq: 523, beats: 1 }, { freq: 440, beats: 1 },
+  { freq: 330, beats: 1 }, { freq: 392, beats: 1 }, { freq: 494, beats: 1 }, { freq: 392, beats: 1 },
+  { freq: 262, beats: 2 }, { freq: 392, beats: 2 },
+  { freq: 294, beats: 1 }, { freq: 370, beats: 1 }, { freq: 440, beats: 1 }, { freq: 370, beats: 1 },
+  { freq: 392, beats: 1 }, { freq: 494, beats: 1 }, { freq: 587, beats: 1 }, { freq: 494, beats: 1 },
+  { freq: 349, beats: 1 }, { freq: 440, beats: 1 }, { freq: 523, beats: 1 }, { freq: 440, beats: 1 },
+  { freq: 330, beats: 2 }, { freq: 262, beats: 2 },
+];
+
+const MUSIC_GAIN = 0.06;
+const SCHEDULE_AHEAD_S = 0.2;
+const SCHEDULER_INTERVAL_MS = 50;
+
 export class AudioService {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -21,11 +42,37 @@ export class AudioService {
   private volume = 0.7;
   private unlocked = false;
 
+  private musicRunning = false;
+  private musicIndex = 0;
+  private musicNextTime = 0;
+  private musicTimer: ReturnType<typeof setInterval> | null = null;
+
   init(): void {
     if (typeof window === 'undefined') return;
     const unlock = (): void => this.ensureContext();
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
+  }
+
+  startMusic(): void {
+    if (this.musicRunning) return;
+    this.musicRunning = true;
+    this.musicIndex = 0;
+    if (this.ctx) this.musicNextTime = this.ctx.currentTime + 0.1;
+    this.runScheduler();
+    this.musicTimer = setInterval(() => this.runScheduler(), SCHEDULER_INTERVAL_MS);
+  }
+
+  stopMusic(): void {
+    this.musicRunning = false;
+    if (this.musicTimer !== null) {
+      clearInterval(this.musicTimer);
+      this.musicTimer = null;
+    }
+  }
+
+  isMusicPlaying(): boolean {
+    return this.musicRunning;
   }
 
   setEnabled(value: boolean): void {
@@ -121,7 +168,32 @@ export class AudioService {
     if (this.ctx.state === 'suspended') {
       void this.ctx.resume();
     }
+    if (!this.unlocked && this.musicRunning) {
+      this.musicNextTime = this.ctx.currentTime + 0.1;
+    }
     this.unlocked = true;
+  }
+
+  private runScheduler(): void {
+    if (!this.musicRunning || !this.ctx || !this.master) return;
+    const now = this.ctx.currentTime;
+    while (this.musicNextTime < now + SCHEDULE_AHEAD_S) {
+      const note = MUSIC_SEQUENCE[this.musicIndex % MUSIC_SEQUENCE.length]!;
+      const duration = note.beats * MUSIC_BEAT_S;
+      if (note.freq !== null) {
+        this.schedule(
+          {
+            freq: note.freq,
+            duration: Math.min(duration * 0.9, duration - 0.02),
+            type: 'square',
+            gain: MUSIC_GAIN,
+          },
+          this.musicNextTime,
+        );
+      }
+      this.musicNextTime += duration;
+      this.musicIndex += 1;
+    }
   }
 
   private applyVolume(): void {

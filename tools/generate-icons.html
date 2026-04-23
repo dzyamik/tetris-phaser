@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Classic Tetris — Icon Generator</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #0a0a0a;
+        color: #fff;
+        font-family: system-ui, sans-serif;
+        padding: 24px;
+      }
+      h1 {
+        font-size: 20px;
+        margin-top: 0;
+      }
+      .intro {
+        max-width: 720px;
+        font-size: 13px;
+        opacity: 0.8;
+        line-height: 1.5;
+      }
+      .row {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        margin-top: 24px;
+      }
+      .card {
+        background: #1a1a1a;
+        border: 1px solid #333;
+        padding: 16px;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      .card canvas {
+        background: #000;
+        image-rendering: pixelated;
+      }
+      .card .name {
+        font-size: 13px;
+        opacity: 0.7;
+      }
+      button {
+        background: #2a5a2a;
+        color: #fff;
+        border: 1px solid #4aaa4a;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: monospace;
+      }
+      button:hover {
+        background: #3a7a3a;
+      }
+      code {
+        background: #000;
+        padding: 2px 6px;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Classic Tetris — PWA icon generator</h1>
+    <p class="intro">
+      One-off browser tool. Click each <strong>Download</strong> button, save the
+      files into <code>public/icons/</code> (replacing the existing placeholders),
+      then run <code>npm run build</code> and commit. The tool draws a stylized
+      T-tetromino with the same NES-style light/dark inset used in-game, on a
+      solid background. The maskable variant leaves a safe zone so Android can
+      crop to various mask shapes without clipping the shape.
+    </p>
+
+    <div class="row" id="row"></div>
+
+    <script>
+      // Palette matches src/config/theme.ts
+      const BG = '#0a0a0a';
+      const BASE = '#aa00ff'; // T piece
+      const configs = [
+        { size: 192, maskable: false, filename: 'icon-192.png' },
+        { size: 512, maskable: false, filename: 'icon-512.png' },
+        { size: 512, maskable: true, filename: 'icon-maskable-512.png' },
+      ];
+
+      function shade(hex, amount) {
+        const n = parseInt(hex.slice(1), 16);
+        const clamp = (v) => Math.max(0, Math.min(255, v));
+        const r = clamp(((n >> 16) & 0xff) + 255 * amount);
+        const g = clamp(((n >> 8) & 0xff) + 255 * amount);
+        const b = clamp((n & 0xff) + 255 * amount);
+        return (
+          '#' +
+          [r, g, b]
+            .map((v) => Math.floor(v).toString(16).padStart(2, '0'))
+            .join('')
+        );
+      }
+
+      function drawBlock(ctx, x, y, size) {
+        const border = Math.max(2, Math.floor(size * 0.08));
+        ctx.fillStyle = BASE;
+        ctx.fillRect(x, y, size, size);
+        ctx.fillStyle = shade(BASE, 0.35);
+        ctx.fillRect(x, y, size, border);
+        ctx.fillRect(x, y, border, size);
+        ctx.fillStyle = shade(BASE, -0.4);
+        ctx.fillRect(x, y + size - border, size, border);
+        ctx.fillRect(x + size - border, y, border, size);
+        ctx.fillStyle = shade(BASE, 0.35);
+        const g = Math.max(2, Math.floor(size * 0.07));
+        ctx.fillRect(x + border + 1, y + border + 1, g, g);
+      }
+
+      function draw(canvas, size, maskable) {
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = BG;
+        ctx.fillRect(0, 0, size, size);
+
+        // T tetromino offsets (col, row relative to origin) per GAME-DESIGN §3
+        // [-1,0] [0,0] [1,0] [0,1]
+        const safe = maskable ? 0.55 : 0.82; // fraction of canvas used
+        const gridW = 3;
+        const gridH = 2;
+        const cell = Math.floor((size * safe) / Math.max(gridW, gridH + 1));
+        // center the 3x2 shape
+        const totalW = gridW * cell;
+        const totalH = gridH * cell;
+        const x0 = Math.floor((size - totalW) / 2);
+        const y0 = Math.floor((size - totalH) / 2);
+
+        // Draw top row: 3 blocks
+        for (let i = 0; i < 3; i++) {
+          drawBlock(ctx, x0 + i * cell, y0, cell);
+        }
+        // Bottom middle block
+        drawBlock(ctx, x0 + cell, y0 + cell, cell);
+      }
+
+      function download(canvas, filename) {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+
+      const row = document.getElementById('row');
+      for (const cfg of configs) {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const canvas = document.createElement('canvas');
+        canvas.style.width = '192px';
+        canvas.style.height = '192px';
+        draw(canvas, cfg.size, cfg.maskable);
+
+        const name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = `${cfg.filename} (${cfg.size}×${cfg.size}${cfg.maskable ? ' · maskable' : ''})`;
+
+        const btn = document.createElement('button');
+        btn.textContent = 'Download';
+        btn.addEventListener('click', () => download(canvas, cfg.filename));
+
+        card.append(canvas, name, btn);
+        row.append(card);
+      }
+    </script>
+  </body>
+</html>
