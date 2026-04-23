@@ -28,3 +28,5 @@ coverage
 # Playwright + screenshots
 .playwright-mcp/
 *.png
+!public/icons/*.png
+!docs/icons/*.png
