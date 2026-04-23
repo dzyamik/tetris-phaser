@@ -1,7 +1,11 @@
 import * as Phaser from 'phaser';
 import { initialState, reducer, type GameState } from '@/core/state';
+import type { Phase } from '@/core/state';
+import type { LineCount } from '@/core/scoring';
+import type { PieceId } from '@/core/tetromino';
 import { InputBus } from '@/input/InputBus';
 import { KeyboardInput } from '@/input/KeyboardInput';
+import { TouchInput } from '@/input/TouchInput';
 import { BoardRenderer } from '@/renderers/BoardRenderer';
 import { HUDRenderer } from '@/renderers/HUDRenderer';
 import {
@@ -12,6 +16,7 @@ import {
   CANVAS_WIDTH,
 } from '@/config/layout';
 import { theme } from '@/config/theme';
+import { haptics } from '@/services/HapticsService';
 
 const FRAME_MS = 1000 / 60;
 const MAX_ACCUM_MS = 2000;
@@ -29,6 +34,7 @@ export default class GameScene extends Phaser.Scene {
   private state!: GameState;
   private bus!: InputBus;
   private keyboard!: KeyboardInput;
+  private touch!: TouchInput;
   private board!: BoardRenderer;
   private hud!: HUDRenderer;
   private accumMs = 0;
@@ -36,6 +42,10 @@ export default class GameScene extends Phaser.Scene {
   private seed = 1;
   private transitioning = false;
   private paused = false;
+
+  private prevActiveId: PieceId | undefined = undefined;
+  private prevLines = 0;
+  private prevPhase: Phase = 'falling';
 
   private pauseBtnBg!: Phaser.GameObjects.Rectangle;
   private pauseBtnText!: Phaser.GameObjects.Text;
@@ -59,10 +69,15 @@ export default class GameScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(theme.background);
 
     this.state = initialState({ startLevel: this.startLevel, seed: this.seed });
+    this.prevActiveId = this.state.active?.id;
+    this.prevLines = this.state.lines;
+    this.prevPhase = this.state.phase;
 
     this.bus = new InputBus();
     this.keyboard = new KeyboardInput(this, this.bus);
     this.keyboard.attach();
+    this.touch = new TouchInput(this, this.bus);
+    this.touch.attach();
 
     this.board = new BoardRenderer(this);
     this.hud = new HUDRenderer(this);
@@ -88,6 +103,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.events.once('shutdown', () => {
       this.keyboard.detach();
+      this.touch.detach();
       this.bus.clear();
       this.board.destroy();
       this.hud.destroy();
@@ -184,6 +200,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.board.render(this.state);
     this.hud.render(this.state);
+    this.fireHapticsForTransitions();
 
     if (this.state.phase === 'over') {
       this.transitioning = true;
@@ -196,6 +213,25 @@ export default class GameScene extends Phaser.Scene {
       this.state = reducer(this.state, action);
     }
     this.state = reducer(this.state, { type: 'Tick' });
+  }
+
+  private fireHapticsForTransitions(): void {
+    const ns = this.state;
+    if (ns.phase === 'over' && this.prevPhase !== 'over') {
+      haptics.gameOver();
+    } else if (ns.lines > this.prevLines) {
+      const delta = ns.lines - this.prevLines;
+      const count = Math.min(4, Math.max(1, delta)) as LineCount;
+      haptics.lineClear(count);
+    } else if (
+      this.prevActiveId !== undefined &&
+      ns.active?.id !== this.prevActiveId
+    ) {
+      haptics.lock();
+    }
+    this.prevActiveId = ns.active?.id;
+    this.prevLines = ns.lines;
+    this.prevPhase = ns.phase;
   }
 
   private transitionToGameOver(): void {

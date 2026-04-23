@@ -38,7 +38,10 @@ See [`docs-dev/`](./docs-dev/) for the full architecture, roadmap, game design, 
 - **P** / **Esc** pause / resume
 
 ### Mobile
-- On-screen buttons. Layout is swappable left/right-handed in Settings.
+- Bottom-left D-pad: ◀ move left · ▼ soft drop · ▶ move right
+- Bottom-right: **B** rotate CCW · **A** rotate CW
+- Top-right: **PAUSE** button
+- Left/right-handed swap comes in the Settings screen (M4).
 
 ## Deploying
 

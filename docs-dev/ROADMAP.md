@@ -83,15 +83,21 @@ Legend: ☐ not started · ⧗ in progress · ☑ done
 
 ---
 
-## M3 — Mobile & PWA polish ☐
+## M3 — Mobile & PWA polish ☑
 
 **Goal:** Playable one-handed on a phone, installable, works offline.
 
 ### Deliverables
 - `src/input/TouchInput.ts` — on-screen buttons laid out with Phaser containers: ◀ ▼ ▶ on the bottom, A/B (rotate) on the right, Pause top-right.
-- Responsive layout via Phaser's `Scale.FIT` (portrait-first); HUD reflows for landscape.
-- `src/services/PWAService.ts` — registers the service worker via `vite-plugin-pwa`, exposes an `onInstallPrompt` hook, shows an install CTA on the menu.
-- `src/services/HapticsService.ts` — thin wrapper over `navigator.vibrate` with a feature check; settings toggle.
+- Responsive layout via Phaser's `Scale.FIT` (portrait-first); manifest locked
+  to `orientation: portrait` for v1. Landscape reflow of the HUD is deferred
+  as a future polish item.
+- `src/services/PWAService.ts` — captures `beforeinstallprompt`, exposes
+  `onAvailabilityChange`, surfaces an install CTA on the menu when Chrome
+  offers one. SW registration itself is handled by `vite-plugin-pwa`.
+- `src/services/HapticsService.ts` — thin wrapper over `navigator.vibrate`
+  with a feature check. Runtime toggle on the menu; persistence lands with
+  `StorageService` in M4.
 - Service-worker precache includes the built JS/CSS/HTML and the manifest icons.
 - Manifest: name, short_name, icons (192/512 PNG + maskable), theme + background color, `display: standalone`, `orientation: portrait`.
 

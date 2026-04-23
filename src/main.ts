@@ -6,6 +6,9 @@ import GameScene from '@/scenes/GameScene';
 import GameOverScene from '@/scenes/GameOverScene';
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from '@/config/layout';
 import { theme } from '@/config/theme';
+import { pwa } from '@/services/PWAService';
+
+pwa.init();
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -16,6 +19,9 @@ const config: Phaser.Types.Core.GameConfig = {
     autoCenter: Phaser.Scale.NO_CENTER,
     width: CANVAS_WIDTH,
     height: CANVAS_HEIGHT,
+  },
+  input: {
+    activePointers: 3,
   },
   scene: [BootScene, PreloadScene, MenuScene, GameScene, GameOverScene],
 };
