@@ -7,7 +7,7 @@ Legend: ☐ not started · ⧗ in progress · ☑ done
 
 ---
 
-## M0 — Bootstrap ☐
+## M0 — Bootstrap ☑
 
 **Goal:** An empty Phaser 4 scene renders and deploys to GitHub Pages.
 
@@ -31,7 +31,7 @@ Legend: ☐ not started · ⧗ in progress · ☑ done
 
 ---
 
-## M1 — Headless core logic ☐
+## M1 — Headless core logic ☑
 
 **Goal:** The entire game rules engine, with zero Phaser involvement, covered by tests.
 

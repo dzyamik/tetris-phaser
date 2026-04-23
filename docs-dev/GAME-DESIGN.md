@@ -36,16 +36,21 @@ Color is a rendering concern; keep it in `src/config/theme.ts`, not in `core/`.
 
 Both directions are supported even though NES purists can argue either way. Rotations are defined by per-piece rotation matrices (4 states: 0/R/2/L). Store them as explicit coordinate offsets rather than computing rotations at runtime — it's simpler and the tables are tiny.
 
-Example for T piece (offsets of the 4 minos relative to piece origin):
+Example for T piece (offsets of the 4 minos relative to piece origin).
+Coordinates are `(col, row)` with `+row = down` (same convention as the board).
+Rotation index advances on CW (A button): `0 → 1 → 2 → 3 → 0`. Visually the stem
+cycles `DOWN → LEFT → UP → RIGHT`:
 
 ```
-rotation 0 (spawn): (-1, 0) (0, 0) (1, 0) (0, 1)
-rotation 1 (R):     (0, -1) (0, 0) (0, 1) (1, 0)
-rotation 2 (2):     (-1, 0) (0, 0) (1, 0) (0, -1)
-rotation 3 (L):     (0, -1) (0, 0) (0, 1) (-1, 0)
+rotation 0 (spawn, stem DOWN):  (-1, 0) (0, 0) (1, 0) (0, 1)
+rotation 1 (CW, stem LEFT):     (0, -1) (0, 0) (0, 1) (-1, 0)
+rotation 2 (stem UP):           (-1, 0) (0, 0) (1, 0) (0, -1)
+rotation 3 (CCW, stem RIGHT):   (0, -1) (0, 0) (0, 1) (1, 0)
 ```
 
 Work these out for all 7 pieces and lock them in a table in `src/core/tetromino.ts`.
+The implementation derives rotations 1–3 from rotation 0 by applying the CW transform
+`(c, r) → (-r, c)` three times — this keeps the 28 offsets consistent by construction.
 
 ## 4. Movement
 
