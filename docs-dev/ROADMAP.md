@@ -58,7 +58,7 @@ Legend: ☐ not started · ⧗ in progress · ☑ done
 
 ---
 
-## M2 — Minimal playable (keyboard, geometry primitives) ☐
+## M2 — Minimal playable (keyboard, geometry primitives) ☑
 
 **Goal:** A real game, ugly but correct. Desktop only is fine.
 
@@ -73,6 +73,8 @@ Legend: ☐ not started · ⧗ in progress · ☑ done
 - HUD with score, lines, level drawn with `Phaser.GameObjects.Text`.
 - DAS/ARR emulation matching NES handling (16f initial delay, 6f repeat).
 - Level select on game start (0–9).
+- Minimal in-scene pause (P / Esc / on-screen button). Full `PauseScene` with menu
+  options is deferred to M4.
 
 ### DoD
 - A player can start, play, lose, and restart a full NES-style game at any starting level.

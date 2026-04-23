@@ -35,7 +35,7 @@ See [`docs-dev/`](./docs-dev/) for the full architecture, roadmap, game design, 
 - **↓** soft drop
 - **Z** rotate counter-clockwise (B button)
 - **X** rotate clockwise (A button)
-- **Enter** pause / unpause
+- **P** / **Esc** pause / resume
 
 ### Mobile
 - On-screen buttons. Layout is swappable left/right-handed in Settings.
