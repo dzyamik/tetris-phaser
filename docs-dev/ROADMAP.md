@@ -204,6 +204,27 @@ Landed after M6 as a single focused pass:
   that draws NES-style T-tetromino icons and downloads them as PNGs
   (192, 512, maskable-512). Replaces the placeholder icons with
   something brand-consistent without adding a build-time dependency.
+- **PWA icons unignored** — a blanket `*.png` in `.gitignore` (meant
+  for screenshots) was silently excluding the manifest icons, which
+  caused GitHub Pages to 404 on them and broke the Workbox precache.
+  `.gitignore` now narrows the rule with `!public/icons/*.png` and
+  `!docs/icons/*.png`, and `index.html` adds the non-deprecated
+  `mobile-web-app-capable` meta.
+- **Settings accessible from Pause** — `MenuScene` and `PauseScene`
+  open `SettingsScene` via `scene.launch + scene.pause` on the caller,
+  and Settings resumes the correct scene on BACK. When opened from
+  Pause, Settings also shows a **QUIT** button to stop the game and
+  return to Menu. `HighScoresScene` uses the same pattern from Menu.
+- **Saved games** — `StorageService.{has,get,set,clear}SavedGame`
+  under `tetris.v1.savedGame` persists the raw `GameState`.
+  `GameScene` auto-saves on scene pause (and clears on game over).
+  `MenuScene` shows a **CONTINUE** button when a save exists, and
+  the green button becomes **NEW GAME** which clears the save.
+  `GameScene.onSceneResume` re-attaches `TouchInput` so a mid-game
+  control-layout swap in Settings takes effect immediately.
+- **Input-leak fix** — after Game → Pause → Menu → Settings → Menu
+  → new game, keyboard could end up disabled. `GameScene.create`
+  now explicitly re-enables `input.keyboard` as a safety net.
 
 ## M7 — Optional / stretch ☐
 

@@ -14,7 +14,8 @@ Built with **Phaser 4** and **TypeScript**, deployed manually to **GitHub Pages*
 - Haptic feedback on supported devices.
 - Synthesized SFX + looping chiptune music (WebAudio) — no audio assets needed.
 - NES-style block insets, particle bursts on line clears, screen shake on tetris.
-- Reduced-motion + scanline toggles in Settings.
+- Reduced-motion + scanline toggles in Settings; Settings reachable mid-game from Pause.
+- Saved games — pause persists the full state to `localStorage`; the menu shows a **Continue** button to resume across reloads.
 - Local high-score board (top 10, stored in `localStorage`).
 
 ## Quick start (for developers)
