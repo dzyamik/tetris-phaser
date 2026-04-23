@@ -160,17 +160,27 @@ Legend: ☐ not started · ⧗ in progress · ☑ done
 
 ---
 
-## M6 — Visual polish ☐
+## M6 — Visual polish ☑
 
 **Goal:** Replace geometry primitives with proper visuals. Add juice.
 
 ### Deliverables
-- Block spritesheet (one sprite per piece type, with a light/dark inset for the NES look).
-- Particle burst on line clear.
-- Screen shake on tetris (4-line clear).
-- Phaser 4 **filters** for background glow (use Phaser 4's unified filter system; see `node_modules/phaser/skills/filters-and-postfx/SKILL.md`).
-- Tween-based slide/drop animations.
-- Optional: CRT scanline overlay (toggleable).
+- Block textures: generated at boot via `Graphics.generateTexture` into
+  `block_<id>` keys with NES-style light top/left + dark bottom/right
+  insets — no asset files needed, matches the synthesized-SFX approach.
+  `BoardRenderer` swapped from `Rectangle` to `Image` pools.
+- Particle burst on line clear via Phaser 4 `ParticleEmitter`, retextured
+  to the piece that caused the clear and exploded once per cleared row.
+- Screen shake on tetris (4-line clear) via `camera.shake`; softer shake
+  on double / triple; none on single.
+- CRT scanline overlay — horizontal pixel rows at 25% alpha, toggle in
+  Settings.
+- Reduced-motion setting + `prefers-reduced-motion` respect: when either
+  is on, particles + shake are disabled.
+- Deferred: dedicated tween-based drop/slide animations and Phaser 4
+  background-glow filter. The NES block insets plus particles + shake
+  already give the "alive" feel; the filter work is a worthwhile
+  follow-up pass and a natural fit for M7 stretch.
 
 ### DoD
 - Game feels responsive and alive. Frame budget stays under 16ms on a mid-range Android.

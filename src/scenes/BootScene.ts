@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { theme } from '@/config/theme';
+import { ensureBlockTextures } from '@/renderers/BlockTextures';
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -8,6 +9,7 @@ export default class BootScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(theme.background);
+    ensureBlockTextures(this);
     this.scene.start('PreloadScene');
   }
 }

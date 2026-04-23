@@ -9,19 +9,34 @@ import { TouchInput } from '@/input/TouchInput';
 import { BoardRenderer } from '@/renderers/BoardRenderer';
 import { HUDRenderer } from '@/renderers/HUDRenderer';
 import {
+  BOARD_PIXEL_HEIGHT,
+  BOARD_PIXEL_WIDTH,
   BOARD_X,
   BOARD_Y,
+  CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  CELL_SIZE,
 } from '@/config/layout';
 import { theme } from '@/config/theme';
 import { haptics } from '@/services/HapticsService';
 import { storage } from '@/services/StorageService';
 import { audio } from '@/services/AudioService';
 import type { Action } from '@/core/actions';
+import { HIDDEN_ROWS } from '@/core/board';
+import { textureKeyFor } from '@/renderers/BlockTextures';
 
 const FRAME_MS = 1000 / 60;
 const MAX_ACCUM_MS = 2000;
 const GAME_OVER_DELAY_MS = 450;
+
+function systemPrefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  try {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
+}
 
 const PAUSE_BTN_W = 64;
 const PAUSE_BTN_H = 24;
@@ -48,6 +63,10 @@ export default class GameScene extends Phaser.Scene {
   private prevPhase: Phase = 'falling';
   private prevLevel = 0;
 
+  private reducedMotion = false;
+  private clearEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private scanlinesOverlay?: Phaser.GameObjects.Graphics;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -68,14 +87,34 @@ export default class GameScene extends Phaser.Scene {
     this.prevPhase = this.state.phase;
     this.prevLevel = this.state.level;
 
+    const settings = storage.getSettings();
+    this.reducedMotion = settings.reducedMotion || systemPrefersReducedMotion();
+
     this.bus = new InputBus();
     this.keyboard = new KeyboardInput(this, this.bus);
     this.keyboard.attach();
-    this.touch = new TouchInput(this, this.bus, storage.getSettings().controlLayout);
+    this.touch = new TouchInput(this, this.bus, settings.controlLayout);
     this.touch.attach();
 
     this.board = new BoardRenderer(this);
     this.hud = new HUDRenderer(this);
+
+    if (!this.reducedMotion) {
+      this.clearEmitter = this.add.particles(0, 0, textureKeyFor('I'), {
+        lifespan: 520,
+        speed: { min: 60, max: 220 },
+        scale: { start: 0.5, end: 0 },
+        alpha: { start: 1, end: 0 },
+        gravityY: 260,
+        rotate: { min: 0, max: 360 },
+        emitting: false,
+      });
+      this.clearEmitter.setDepth(10);
+    }
+
+    if (settings.scanlines) {
+      this.scanlinesOverlay = this.drawScanlines();
+    }
 
     this.add.text(BOARD_X, BOARD_Y - 28, 'TETRIS', {
       color: theme.text,
@@ -104,6 +143,8 @@ export default class GameScene extends Phaser.Scene {
       this.bus.clear();
       this.board.destroy();
       this.hud.destroy();
+      this.clearEmitter?.destroy();
+      this.scanlinesOverlay?.destroy();
       if (kb) {
         kb.off('keydown-P', onPauseKey);
         kb.off('keydown-ESC', onPauseKey);
@@ -111,6 +152,16 @@ export default class GameScene extends Phaser.Scene {
       this.events.off('pause', this.onScenePause, this);
       this.events.off('resume', this.onSceneResume, this);
     });
+  }
+
+  private drawScanlines(): Phaser.GameObjects.Graphics {
+    const g = this.add.graphics();
+    g.fillStyle(0x000000, 0.25);
+    for (let y = 0; y < CANVAS_HEIGHT; y += 2) {
+      g.fillRect(0, y, CANVAS_WIDTH, 1);
+    }
+    g.setDepth(1000);
+    return g;
   }
 
   private createPauseButton(): void {
@@ -211,6 +262,7 @@ export default class GameScene extends Phaser.Scene {
       const count = Math.min(4, Math.max(1, delta)) as LineCount;
       haptics.lineClear(count);
       audio.lineClear(count);
+      this.fireClearVisuals(count, ns.lastClear?.rows);
     } else if (
       this.prevActiveId !== undefined &&
       ns.active?.id !== this.prevActiveId
@@ -225,6 +277,26 @@ export default class GameScene extends Phaser.Scene {
     this.prevLines = ns.lines;
     this.prevPhase = ns.phase;
     this.prevLevel = ns.level;
+  }
+
+  private fireClearVisuals(count: LineCount, rows?: ReadonlyArray<number>): void {
+    if (this.reducedMotion) return;
+
+    if (count === 4) {
+      this.cameras.main.shake(260, 0.01);
+    } else if (count >= 2) {
+      this.cameras.main.shake(120, 0.004);
+    }
+
+    if (!this.clearEmitter || !rows || !this.prevActiveId) return;
+    this.clearEmitter.setTexture(textureKeyFor(this.prevActiveId));
+    const cx = BOARD_X + BOARD_PIXEL_WIDTH / 2;
+    const perRow = count === 4 ? 18 : 12;
+    for (const row of rows) {
+      const y = BOARD_Y + (row - HIDDEN_ROWS) * CELL_SIZE + CELL_SIZE / 2;
+      this.clearEmitter.explode(perRow, cx, y);
+    }
+    void BOARD_PIXEL_HEIGHT;
   }
 
   private transitionToGameOver(): void {

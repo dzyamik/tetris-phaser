@@ -14,20 +14,19 @@ import {
   BOARD_Y,
   CELL_SIZE,
 } from '@/config/layout';
-import { pieceColors, theme } from '@/config/theme';
+import { theme } from '@/config/theme';
+import { textureKeyFor } from './BlockTextures';
 
 function hex(value: string): number {
   return parseInt(value.replace('#', ''), 16);
 }
 
-const CELL_INSET = 2;
-
 export class BoardRenderer {
   private readonly scene: Phaser.Scene;
   private readonly grid: Phaser.GameObjects.Graphics;
-  private readonly cells: Phaser.GameObjects.Rectangle[][] = [];
-  private readonly active: Phaser.GameObjects.Rectangle[] = [];
-  private readonly ghost: Phaser.GameObjects.Rectangle[] = [];
+  private readonly cells: Phaser.GameObjects.Image[][] = [];
+  private readonly active: Phaser.GameObjects.Image[] = [];
+  private readonly ghost: Phaser.GameObjects.Image[] = [];
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -57,34 +56,26 @@ export class BoardRenderer {
 
   private buildCellPool(): void {
     for (let r = 0; r < VISIBLE_HEIGHT; r++) {
-      const row: Phaser.GameObjects.Rectangle[] = [];
+      const row: Phaser.GameObjects.Image[] = [];
       for (let c = 0; c < BOARD_WIDTH; c++) {
-        const rect = this.scene.add.rectangle(
+        const img = this.scene.add.image(
           BOARD_X + c * CELL_SIZE + CELL_SIZE / 2,
           BOARD_Y + r * CELL_SIZE + CELL_SIZE / 2,
-          CELL_SIZE - CELL_INSET,
-          CELL_SIZE - CELL_INSET,
-          0xffffff,
+          textureKeyFor('I'),
         );
-        rect.setVisible(false);
-        row.push(rect);
+        img.setVisible(false);
+        row.push(img);
       }
       this.cells.push(row);
     }
   }
 
-  private buildFourPool(pool: Phaser.GameObjects.Rectangle[], alpha: number): void {
+  private buildFourPool(pool: Phaser.GameObjects.Image[], alpha: number): void {
     for (let i = 0; i < 4; i++) {
-      const rect = this.scene.add.rectangle(
-        0,
-        0,
-        CELL_SIZE - CELL_INSET,
-        CELL_SIZE - CELL_INSET,
-        0xffffff,
-      );
-      rect.setAlpha(alpha);
-      rect.setVisible(false);
-      pool.push(rect);
+      const img = this.scene.add.image(0, 0, textureKeyFor('I'));
+      img.setAlpha(alpha);
+      img.setVisible(false);
+      pool.push(img);
     }
   }
 
@@ -93,24 +84,24 @@ export class BoardRenderer {
       const boardRow = r + HIDDEN_ROWS;
       for (let c = 0; c < BOARD_WIDTH; c++) {
         const cell = state.board[boardRow]?.[c];
-        const rect = this.cells[r]![c]!;
+        const img = this.cells[r]![c]!;
         if (cell) {
-          rect.setVisible(true);
-          rect.setFillStyle(hex(pieceColors[cell]), 1);
+          img.setTexture(textureKeyFor(cell));
+          img.setVisible(true);
         } else {
-          rect.setVisible(false);
+          img.setVisible(false);
         }
       }
     }
 
-    for (const rect of this.active) rect.setVisible(false);
-    for (const rect of this.ghost) rect.setVisible(false);
+    for (const img of this.active) img.setVisible(false);
+    for (const img of this.ghost) img.setVisible(false);
 
     const active = state.active;
     if (!active) return;
 
     const offsets = pieceOffsets(active.id, active.rotation);
-    const color = hex(pieceColors[active.id]);
+    const texture = textureKeyFor(active.id);
 
     let ghostRow = active.row;
     while (
@@ -125,14 +116,14 @@ export class BoardRenderer {
         const c = active.col + dc;
         const r = ghostRow + dr;
         if (r < HIDDEN_ROWS) continue;
-        const rect = this.ghost[i]!;
-        rect.setFillStyle(color, 1);
-        rect.setAlpha(theme.ghostAlpha);
-        rect.setPosition(
+        const img = this.ghost[i]!;
+        img.setTexture(texture);
+        img.setAlpha(theme.ghostAlpha);
+        img.setPosition(
           BOARD_X + c * CELL_SIZE + CELL_SIZE / 2,
           BOARD_Y + (r - HIDDEN_ROWS) * CELL_SIZE + CELL_SIZE / 2,
         );
-        rect.setVisible(true);
+        img.setVisible(true);
       }
     }
 
@@ -141,22 +132,36 @@ export class BoardRenderer {
       const c = active.col + dc;
       const r = active.row + dr;
       if (r < HIDDEN_ROWS) continue;
-      const rect = this.active[i]!;
-      rect.setFillStyle(color, 1);
-      rect.setAlpha(1);
-      rect.setPosition(
+      const img = this.active[i]!;
+      img.setTexture(texture);
+      img.setAlpha(1);
+      img.setScale(1);
+      img.setPosition(
         BOARD_X + c * CELL_SIZE + CELL_SIZE / 2,
         BOARD_Y + (r - HIDDEN_ROWS) * CELL_SIZE + CELL_SIZE / 2,
       );
-      rect.setVisible(true);
+      img.setVisible(true);
+    }
+  }
+
+  pulseActive(scene: Phaser.Scene): void {
+    for (const img of this.active) {
+      if (!img.visible) continue;
+      scene.tweens.add({
+        targets: img,
+        scale: { from: 1, to: 1.18 },
+        yoyo: true,
+        duration: 90,
+        ease: 'Sine.easeOut',
+      });
     }
   }
 
   destroy(): void {
     this.grid.destroy();
-    for (const row of this.cells) for (const rect of row) rect.destroy();
-    for (const rect of this.active) rect.destroy();
-    for (const rect of this.ghost) rect.destroy();
+    for (const row of this.cells) for (const img of row) img.destroy();
+    for (const img of this.active) img.destroy();
+    for (const img of this.ghost) img.destroy();
     this.cells.length = 0;
     this.active.length = 0;
     this.ghost.length = 0;

@@ -18,6 +18,8 @@ export default class SettingsScene extends Phaser.Scene {
   private volumeValue!: Phaser.GameObjects.Text;
   private hapticsValue!: Phaser.GameObjects.Text;
   private layoutValue!: Phaser.GameObjects.Text;
+  private motionValue!: Phaser.GameObjects.Text;
+  private scanlinesValue!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'SettingsScene' });
@@ -29,30 +31,30 @@ export default class SettingsScene extends Phaser.Scene {
     const cx = CANVAS_WIDTH / 2;
 
     this.add
-      .text(cx, 48, 'SETTINGS', {
+      .text(cx, 40, 'SETTINGS', {
         color: theme.text,
         fontFamily: 'monospace',
-        fontSize: '24px',
+        fontSize: '22px',
       })
       .setOrigin(0.5);
 
     this.createToggleRow(
       cx,
-      110,
+      90,
       'SOUND',
       this.soundLabel(),
-      true,
+      audio.isSupported(),
       () => this.toggleSound(),
       (t) => {
         this.soundValue = t;
       },
     );
 
-    this.createVolumeRow(cx, 184);
+    this.createVolumeRow(cx, 162);
 
     this.createToggleRow(
       cx,
-      260,
+      234,
       'HAPTICS',
       this.hapticsLabel(),
       haptics.isSupported(),
@@ -64,7 +66,7 @@ export default class SettingsScene extends Phaser.Scene {
 
     this.createToggleRow(
       cx,
-      336,
+      306,
       'CONTROLS',
       this.layoutLabel(),
       true,
@@ -74,7 +76,31 @@ export default class SettingsScene extends Phaser.Scene {
       },
     );
 
-    this.makeSecondaryButton(cx, 520, 160, 40, 'BACK', () => this.goBack());
+    this.createToggleRow(
+      cx,
+      378,
+      'REDUCED MOTION',
+      this.motionLabel(),
+      true,
+      () => this.toggleMotion(),
+      (t) => {
+        this.motionValue = t;
+      },
+    );
+
+    this.createToggleRow(
+      cx,
+      450,
+      'SCANLINES',
+      this.scanlinesLabel(),
+      true,
+      () => this.toggleScanlines(),
+      (t) => {
+        this.scanlinesValue = t;
+      },
+    );
+
+    this.makeSecondaryButton(cx, 540, 160, 36, 'BACK', () => this.goBack());
 
     const kb = this.input.keyboard;
     if (kb) {
@@ -99,21 +125,21 @@ export default class SettingsScene extends Phaser.Scene {
   ): void {
     const labelColor = enabled ? theme.textMuted : '#4a4a4a';
     this.add
-      .text(cx, cy - 16, label, {
+      .text(cx, cy - 14, label, {
         color: labelColor,
         fontFamily: 'monospace',
-        fontSize: '12px',
+        fontSize: '11px',
       })
       .setOrigin(0.5);
 
     const bg = this.add
-      .rectangle(cx, cy + 14, 220, 36, BTN_FILL)
+      .rectangle(cx, cy + 12, 240, 32, BTN_FILL)
       .setStrokeStyle(1, enabled ? BTN_STROKE : BTN_DISABLED_STROKE);
     const valueText = this.add
-      .text(cx, cy + 14, value, {
+      .text(cx, cy + 12, value, {
         color: enabled ? theme.text : '#6a6a6a',
         fontFamily: 'monospace',
-        fontSize: '14px',
+        fontSize: '13px',
       })
       .setOrigin(0.5);
     capture(valueText);
@@ -135,41 +161,41 @@ export default class SettingsScene extends Phaser.Scene {
     const enabled = audio.isSupported();
     const labelColor = enabled ? theme.textMuted : '#4a4a4a';
     this.add
-      .text(cx, cy - 16, 'VOLUME', {
+      .text(cx, cy - 14, 'VOLUME', {
         color: labelColor,
         fontFamily: 'monospace',
-        fontSize: '12px',
+        fontSize: '11px',
       })
       .setOrigin(0.5);
 
     this.add
-      .rectangle(cx, cy + 14, 220, 36, BTN_FILL)
+      .rectangle(cx, cy + 12, 240, 32, BTN_FILL)
       .setStrokeStyle(1, enabled ? BTN_STROKE : BTN_DISABLED_STROKE);
 
     this.volumeValue = this.add
-      .text(cx, cy + 14, this.volumeLabel(), {
+      .text(cx, cy + 12, this.volumeLabel(), {
         color: enabled ? theme.text : '#6a6a6a',
         fontFamily: 'monospace',
-        fontSize: '14px',
+        fontSize: '13px',
       })
       .setOrigin(0.5);
 
     if (!enabled) return;
 
-    this.makeStepButton(cx - 86, cy + 14, '−', () => this.changeVolume(-VOLUME_STEP));
-    this.makeStepButton(cx + 86, cy + 14, '+', () => this.changeVolume(VOLUME_STEP));
+    this.makeStepButton(cx - 96, cy + 12, '−', () => this.changeVolume(-VOLUME_STEP));
+    this.makeStepButton(cx + 96, cy + 12, '+', () => this.changeVolume(VOLUME_STEP));
   }
 
   private makeStepButton(cx: number, cy: number, label: string, onTap: () => void): void {
     const bg = this.add
-      .rectangle(cx, cy, 32, 32, BTN_FILL)
+      .rectangle(cx, cy, 28, 28, BTN_FILL)
       .setStrokeStyle(1, BTN_STROKE)
       .setInteractive({ useHandCursor: true });
     this.add
       .text(cx, cy, label, {
         color: theme.text,
         fontFamily: 'monospace',
-        fontSize: '20px',
+        fontSize: '18px',
       })
       .setOrigin(0.5);
     bg.on('pointerdown', () => {
@@ -231,6 +257,14 @@ export default class SettingsScene extends Phaser.Scene {
     return layout === 'left-handed' ? 'LEFT-HANDED' : 'RIGHT-HANDED';
   }
 
+  private motionLabel(): string {
+    return storage.getSettings().reducedMotion ? 'ON' : 'OFF';
+  }
+
+  private scanlinesLabel(): string {
+    return storage.getSettings().scanlines ? 'ON' : 'OFF';
+  }
+
   private toggleSound(): void {
     const enabled = audio.toggle();
     storage.updateSettings({ sound: enabled });
@@ -255,6 +289,18 @@ export default class SettingsScene extends Phaser.Scene {
     const next: ControlLayout = current === 'right-handed' ? 'left-handed' : 'right-handed';
     storage.updateSettings({ controlLayout: next });
     this.layoutValue.setText(this.layoutLabel());
+  }
+
+  private toggleMotion(): void {
+    const next = !storage.getSettings().reducedMotion;
+    storage.updateSettings({ reducedMotion: next });
+    this.motionValue.setText(this.motionLabel());
+  }
+
+  private toggleScanlines(): void {
+    const next = !storage.getSettings().scanlines;
+    storage.updateSettings({ scanlines: next });
+    this.scanlinesValue.setText(this.scanlinesLabel());
   }
 
   private goBack(): void {

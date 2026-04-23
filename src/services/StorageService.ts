@@ -6,6 +6,8 @@ export type Settings = {
   volume: number;
   startingLevel: number;
   controlLayout: ControlLayout;
+  reducedMotion: boolean;
+  scanlines: boolean;
 };
 
 export type HighScore = {
@@ -27,6 +29,8 @@ const DEFAULT_SETTINGS: Settings = {
   volume: 0.7,
   startingLevel: 0,
   controlLayout: 'right-handed',
+  reducedMotion: false,
+  scanlines: false,
 };
 
 function available(): boolean {
@@ -70,6 +74,12 @@ function parseSettings(raw: string | null): Settings {
           : DEFAULT_SETTINGS.startingLevel,
       controlLayout:
         data.controlLayout === 'left-handed' ? 'left-handed' : DEFAULT_SETTINGS.controlLayout,
+      reducedMotion:
+        typeof data.reducedMotion === 'boolean'
+          ? data.reducedMotion
+          : DEFAULT_SETTINGS.reducedMotion,
+      scanlines:
+        typeof data.scanlines === 'boolean' ? data.scanlines : DEFAULT_SETTINGS.scanlines,
     };
   } catch {
     return { ...DEFAULT_SETTINGS };
