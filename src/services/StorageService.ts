@@ -2,6 +2,8 @@ export type ControlLayout = 'right-handed' | 'left-handed';
 
 export type Settings = {
   haptics: boolean;
+  sound: boolean;
+  volume: number;
   startingLevel: number;
   controlLayout: ControlLayout;
 };
@@ -21,6 +23,8 @@ const KEY_HIGH_SCORES = 'tetris.v1.highScores';
 
 const DEFAULT_SETTINGS: Settings = {
   haptics: true,
+  sound: true,
+  volume: 0.7,
   startingLevel: 0,
   controlLayout: 'right-handed',
 };
@@ -53,6 +57,11 @@ function parseSettings(raw: string | null): Settings {
     const data = JSON.parse(raw) as Partial<Settings>;
     return {
       haptics: typeof data.haptics === 'boolean' ? data.haptics : DEFAULT_SETTINGS.haptics,
+      sound: typeof data.sound === 'boolean' ? data.sound : DEFAULT_SETTINGS.sound,
+      volume:
+        typeof data.volume === 'number' && data.volume >= 0 && data.volume <= 1
+          ? data.volume
+          : DEFAULT_SETTINGS.volume,
       startingLevel:
         typeof data.startingLevel === 'number' &&
         data.startingLevel >= 0 &&

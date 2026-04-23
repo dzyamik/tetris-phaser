@@ -134,16 +134,24 @@ Legend: ☐ not started · ⧗ in progress · ☑ done
 
 ---
 
-## M5 — Audio ☐
+## M5 — Audio ☑
 
 **Goal:** Sound effects + optional music, respecting mobile autoplay rules.
 
 ### Deliverables
-- `src/services/AudioService.ts` wrapping Phaser audio. Handles the first-touch unlock on iOS.
-- SFX for: move, rotate, soft-drop tick, lock, line clear (distinct for tetris), level-up, game over.
-- Looping music track (CC0/CC-BY or originals) with a mute toggle.
-- Volume sliders in Settings.
-- Preloaded in `PreloadScene`.
+- `src/services/AudioService.ts` — lightweight WebAudio wrapper. Lazy
+  `AudioContext` unlocked on first pointerdown/keydown (satisfies iOS
+  autoplay rules). SFX are synthesized on-the-fly (oscillator + gain
+  envelope), so no asset preloading is required. `init()` is called
+  once from `main.ts`.
+- SFX for: move, rotate, soft drop (on press), lock, single/double/triple
+  line clear, tetris (4-line, distinct arpeggio), level-up, game over.
+- Music: skipped for v1 — the ROADMAP entry is deferred and can land as
+  an asset-based addition later.
+- SOUND toggle + VOLUME stepper (− / +, 10% steps) in `SettingsScene`,
+  both persisted via `StorageService`.
+- No `PreloadScene` asset work needed because audio is synthesized;
+  unlock listener is wired in `main.ts`.
 
 ### DoD
 - First audio plays on the first input (not on page load).

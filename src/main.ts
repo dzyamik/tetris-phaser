@@ -12,9 +12,14 @@ import { theme } from '@/config/theme';
 import { pwa } from '@/services/PWAService';
 import { storage } from '@/services/StorageService';
 import { haptics } from '@/services/HapticsService';
+import { audio } from '@/services/AudioService';
 
 pwa.init();
-haptics.setEnabled(storage.getSettings().haptics);
+const initialSettings = storage.getSettings();
+haptics.setEnabled(initialSettings.haptics);
+audio.setEnabled(initialSettings.sound);
+audio.setVolume(initialSettings.volume);
+audio.init();
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,

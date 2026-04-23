@@ -12,6 +12,7 @@ Built with **Phaser 4** and **TypeScript**, deployed manually to **GitHub Pages*
 - Keyboard on desktop, on-screen buttons on mobile.
 - Fully offline after first load (PWA + service-worker precache).
 - Haptic feedback on supported devices.
+- Synthesized SFX (WebAudio) — no audio assets needed.
 - Local high-score board (top 10, stored in `localStorage`).
 
 ## Quick start (for developers)

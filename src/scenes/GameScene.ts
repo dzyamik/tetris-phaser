@@ -16,6 +16,8 @@ import {
 import { theme } from '@/config/theme';
 import { haptics } from '@/services/HapticsService';
 import { storage } from '@/services/StorageService';
+import { audio } from '@/services/AudioService';
+import type { Action } from '@/core/actions';
 
 const FRAME_MS = 1000 / 60;
 const MAX_ACCUM_MS = 2000;
@@ -44,6 +46,7 @@ export default class GameScene extends Phaser.Scene {
   private prevActiveId: PieceId | undefined = undefined;
   private prevLines = 0;
   private prevPhase: Phase = 'falling';
+  private prevLevel = 0;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -63,6 +66,7 @@ export default class GameScene extends Phaser.Scene {
     this.prevActiveId = this.state.active?.id;
     this.prevLines = this.state.lines;
     this.prevPhase = this.state.phase;
+    this.prevLevel = this.state.level;
 
     this.bus = new InputBus();
     this.keyboard = new KeyboardInput(this, this.bus);
@@ -164,7 +168,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.board.render(this.state);
     this.hud.render(this.state);
-    this.fireHapticsForTransitions();
+    this.fireTransitionEffects();
 
     if (this.state.phase === 'over') {
       this.transitioning = true;
@@ -174,28 +178,53 @@ export default class GameScene extends Phaser.Scene {
 
   private step(): void {
     for (const action of this.bus.drain()) {
+      const before = this.state;
       this.state = reducer(this.state, action);
+      this.fireActionAudio(action, before, this.state);
     }
     this.state = reducer(this.state, { type: 'Tick' });
   }
 
-  private fireHapticsForTransitions(): void {
+  private fireActionAudio(action: Action, before: GameState, after: GameState): void {
+    switch (action.type) {
+      case 'Move':
+        if (before.active?.col !== after.active?.col) audio.move();
+        break;
+      case 'Rotate':
+        if (before.active?.rotation !== after.active?.rotation) audio.rotate();
+        break;
+      case 'SoftDrop':
+        if (action.held && !before.softDrop) audio.softDrop();
+        break;
+      default:
+        break;
+    }
+  }
+
+  private fireTransitionEffects(): void {
     const ns = this.state;
     if (ns.phase === 'over' && this.prevPhase !== 'over') {
       haptics.gameOver();
+      audio.gameOver();
     } else if (ns.lines > this.prevLines) {
       const delta = ns.lines - this.prevLines;
       const count = Math.min(4, Math.max(1, delta)) as LineCount;
       haptics.lineClear(count);
+      audio.lineClear(count);
     } else if (
       this.prevActiveId !== undefined &&
       ns.active?.id !== this.prevActiveId
     ) {
       haptics.lock();
+      audio.lock();
+    }
+    if (ns.level > this.prevLevel) {
+      audio.levelUp();
     }
     this.prevActiveId = ns.active?.id;
     this.prevLines = ns.lines;
     this.prevPhase = ns.phase;
+    this.prevLevel = ns.level;
   }
 
   private transitionToGameOver(): void {
