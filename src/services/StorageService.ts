@@ -22,6 +22,7 @@ export const MAX_HIGH_SCORES = 10;
 
 const KEY_SETTINGS = 'tetris.v1.settings';
 const KEY_HIGH_SCORES = 'tetris.v1.highScores';
+const KEY_SAVED_GAME = 'tetris.v1.savedGame';
 
 const DEFAULT_SETTINGS: Settings = {
   haptics: true,
@@ -108,6 +109,15 @@ function parseHighScores(raw: string | null): HighScore[] {
   }
 }
 
+function safeRemove(key: string): void {
+  if (!available()) return;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* no-op */
+  }
+}
+
 export class StorageService {
   private settings: Settings;
   private highScores: HighScore[];
@@ -145,6 +155,32 @@ export class StorageService {
     this.highScores = next;
     safeWrite(KEY_HIGH_SCORES, JSON.stringify(next));
     return this.getHighScores();
+  }
+
+  hasSavedGame(): boolean {
+    return safeRead(KEY_SAVED_GAME) !== null;
+  }
+
+  getSavedGame(): unknown {
+    const raw = safeRead(KEY_SAVED_GAME);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  setSavedGame(state: unknown): void {
+    try {
+      safeWrite(KEY_SAVED_GAME, JSON.stringify(state));
+    } catch {
+      /* circular ref or similar — drop silently */
+    }
+  }
+
+  clearSavedGame(): void {
+    safeRemove(KEY_SAVED_GAME);
   }
 }
 

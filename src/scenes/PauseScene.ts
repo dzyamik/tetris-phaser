@@ -40,7 +40,7 @@ export default class PauseScene extends Phaser.Scene {
 
     this.makeButton(
       cx,
-      340,
+      316,
       180,
       44,
       'RESUME',
@@ -53,8 +53,21 @@ export default class PauseScene extends Phaser.Scene {
 
     this.makeButton(
       cx,
-      400,
-      160,
+      372,
+      180,
+      36,
+      'SETTINGS',
+      BTN_FILL,
+      BTN_STROKE,
+      BTN_FILL_HOVER,
+      '14px',
+      () => this.openSettings(),
+    );
+
+    this.makeButton(
+      cx,
+      420,
+      180,
       36,
       'MENU',
       BTN_FILL,
@@ -69,12 +82,14 @@ export default class PauseScene extends Phaser.Scene {
 
     const onResume = (): void => this.resumeGame();
     const onMenu = (): void => this.goToMenu();
+    const onSettings = (): void => this.openSettings();
 
     kb.on('keydown-P', onResume);
     kb.on('keydown-ESC', onResume);
     kb.on('keydown-ENTER', onResume);
     kb.on('keydown-SPACE', onResume);
     kb.on('keydown-M', onMenu);
+    kb.on('keydown-S', onSettings);
 
     this.events.once('shutdown', () => {
       kb.off('keydown-P', onResume);
@@ -82,7 +97,13 @@ export default class PauseScene extends Phaser.Scene {
       kb.off('keydown-ENTER', onResume);
       kb.off('keydown-SPACE', onResume);
       kb.off('keydown-M', onMenu);
+      kb.off('keydown-S', onSettings);
     });
+  }
+
+  private openSettings(): void {
+    this.scene.launch('SettingsScene', { from: 'pause' });
+    this.scene.pause();
   }
 
   private makeButton(

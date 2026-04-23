@@ -13,6 +13,9 @@ const BTN_DISABLED_STROKE = 0x333333;
 
 const VOLUME_STEP = 0.1;
 
+type SettingsSource = 'menu' | 'pause';
+type SettingsData = { from?: SettingsSource };
+
 export default class SettingsScene extends Phaser.Scene {
   private soundValue!: Phaser.GameObjects.Text;
   private volumeValue!: Phaser.GameObjects.Text;
@@ -20,9 +23,14 @@ export default class SettingsScene extends Phaser.Scene {
   private layoutValue!: Phaser.GameObjects.Text;
   private motionValue!: Phaser.GameObjects.Text;
   private scanlinesValue!: Phaser.GameObjects.Text;
+  private from: SettingsSource = 'menu';
 
   constructor() {
     super({ key: 'SettingsScene' });
+  }
+
+  init(data: SettingsData): void {
+    this.from = data.from ?? 'menu';
   }
 
   create(): void {
@@ -100,7 +108,12 @@ export default class SettingsScene extends Phaser.Scene {
       },
     );
 
-    this.makeSecondaryButton(cx, 540, 160, 36, 'BACK', () => this.goBack());
+    if (this.from === 'pause') {
+      this.makeSecondaryButton(cx - 92, 540, 140, 36, 'BACK', () => this.goBack());
+      this.makeSecondaryButton(cx + 92, 540, 140, 36, 'QUIT', () => this.quitToMenu());
+    } else {
+      this.makeSecondaryButton(cx, 540, 160, 36, 'BACK', () => this.goBack());
+    }
 
     const kb = this.input.keyboard;
     if (kb) {
@@ -304,6 +317,14 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   private goBack(): void {
+    const caller = this.from === 'pause' ? 'PauseScene' : 'MenuScene';
+    this.scene.resume(caller);
+    this.scene.stop();
+  }
+
+  private quitToMenu(): void {
+    this.scene.stop('GameScene');
+    this.scene.stop('PauseScene');
     this.scene.start('MenuScene');
   }
 }

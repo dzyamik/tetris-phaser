@@ -45,7 +45,7 @@ const PAUSE_BTN_FILL = 0x222222;
 const PAUSE_BTN_HOVER = 0x333333;
 const PAUSE_BTN_STROKE = 0x555555;
 
-type GameSceneData = { startLevel?: number; seed?: number };
+type GameSceneData = { startLevel?: number; seed?: number; resume?: boolean };
 
 export default class GameScene extends Phaser.Scene {
   private state!: GameState;
@@ -58,6 +58,7 @@ export default class GameScene extends Phaser.Scene {
   private startLevel = 0;
   private seed = 1;
   private transitioning = false;
+  private resumedState: GameState | null = null;
 
   private prevActiveId: PieceId | undefined = undefined;
   private prevLines = 0;
@@ -73,16 +74,31 @@ export default class GameScene extends Phaser.Scene {
   }
 
   init(data: GameSceneData): void {
-    this.startLevel = data.startLevel ?? 0;
-    this.seed = data.seed ?? (Date.now() >>> 0);
     this.accumMs = 0;
     this.transitioning = false;
+    this.resumedState = null;
+
+    if (data.resume) {
+      const saved = storage.getSavedGame() as GameState | null;
+      if (saved && typeof saved === 'object') {
+        this.resumedState = saved;
+        this.startLevel = saved.startLevel ?? 0;
+        this.seed = saved.rng?.seed ?? (Date.now() >>> 0);
+        return;
+      }
+    }
+
+    this.startLevel = data.startLevel ?? 0;
+    this.seed = data.seed ?? (Date.now() >>> 0);
   }
 
   create(): void {
     this.cameras.main.setBackgroundColor(theme.background);
 
-    this.state = initialState({ startLevel: this.startLevel, seed: this.seed });
+    if (this.input.keyboard) this.input.keyboard.enabled = true;
+
+    this.state =
+      this.resumedState ?? initialState({ startLevel: this.startLevel, seed: this.seed });
     this.prevActiveId = this.state.active?.id;
     this.prevLines = this.state.lines;
     this.prevPhase = this.state.phase;
@@ -201,12 +217,21 @@ export default class GameScene extends Phaser.Scene {
     this.state = reducer(this.state, { type: 'SoftDrop', held: false });
     this.board.render(this.state);
     this.hud.render(this.state);
+    if (this.state.phase !== 'over') {
+      storage.setSavedGame(this.state);
+    }
   }
 
   private onSceneResume(): void {
     if (this.input.keyboard) this.input.keyboard.enabled = true;
     this.bus.clear();
     this.accumMs = 0;
+
+    // The user may have flipped CONTROLS in Settings; re-attach with the current layout.
+    const layout = storage.getSettings().controlLayout;
+    this.touch.detach();
+    this.touch = new TouchInput(this, this.bus, layout);
+    this.touch.attach();
   }
 
   override update(_time: number, deltaMs: number): void {
@@ -225,6 +250,7 @@ export default class GameScene extends Phaser.Scene {
     this.fireTransitionEffects();
 
     if (this.state.phase === 'over') {
+      storage.clearSavedGame();
       this.transitioning = true;
       this.time.delayedCall(GAME_OVER_DELAY_MS, () => this.transitionToGameOver());
     }

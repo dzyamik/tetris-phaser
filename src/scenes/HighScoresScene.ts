@@ -106,6 +106,7 @@ export default class HighScoresScene extends Phaser.Scene {
   }
 
   private goBack(): void {
-    this.scene.start('MenuScene');
+    this.scene.resume('MenuScene');
+    this.scene.stop();
   }
 }
