@@ -4,11 +4,17 @@ import PreloadScene from '@/scenes/PreloadScene';
 import MenuScene from '@/scenes/MenuScene';
 import GameScene from '@/scenes/GameScene';
 import GameOverScene from '@/scenes/GameOverScene';
+import PauseScene from '@/scenes/PauseScene';
+import SettingsScene from '@/scenes/SettingsScene';
+import HighScoresScene from '@/scenes/HighScoresScene';
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from '@/config/layout';
 import { theme } from '@/config/theme';
 import { pwa } from '@/services/PWAService';
+import { storage } from '@/services/StorageService';
+import { haptics } from '@/services/HapticsService';
 
 pwa.init();
+haptics.setEnabled(storage.getSettings().haptics);
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -23,7 +29,16 @@ const config: Phaser.Types.Core.GameConfig = {
   input: {
     activePointers: 3,
   },
-  scene: [BootScene, PreloadScene, MenuScene, GameScene, GameOverScene],
+  scene: [
+    BootScene,
+    PreloadScene,
+    MenuScene,
+    GameScene,
+    PauseScene,
+    GameOverScene,
+    SettingsScene,
+    HighScoresScene,
+  ],
 };
 
 new Phaser.Game(config);

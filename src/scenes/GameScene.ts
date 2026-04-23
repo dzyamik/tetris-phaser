@@ -9,14 +9,13 @@ import { TouchInput } from '@/input/TouchInput';
 import { BoardRenderer } from '@/renderers/BoardRenderer';
 import { HUDRenderer } from '@/renderers/HUDRenderer';
 import {
-  BOARD_PIXEL_HEIGHT,
-  BOARD_PIXEL_WIDTH,
   BOARD_X,
   BOARD_Y,
   CANVAS_WIDTH,
 } from '@/config/layout';
 import { theme } from '@/config/theme';
 import { haptics } from '@/services/HapticsService';
+import { storage } from '@/services/StorageService';
 
 const FRAME_MS = 1000 / 60;
 const MAX_ACCUM_MS = 2000;
@@ -41,17 +40,10 @@ export default class GameScene extends Phaser.Scene {
   private startLevel = 0;
   private seed = 1;
   private transitioning = false;
-  private paused = false;
 
   private prevActiveId: PieceId | undefined = undefined;
   private prevLines = 0;
   private prevPhase: Phase = 'falling';
-
-  private pauseBtnBg!: Phaser.GameObjects.Rectangle;
-  private pauseBtnText!: Phaser.GameObjects.Text;
-  private overlayBg!: Phaser.GameObjects.Rectangle;
-  private overlayText!: Phaser.GameObjects.Text;
-  private overlayHint!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -62,7 +54,6 @@ export default class GameScene extends Phaser.Scene {
     this.seed = data.seed ?? (Date.now() >>> 0);
     this.accumMs = 0;
     this.transitioning = false;
-    this.paused = false;
   }
 
   create(): void {
@@ -76,7 +67,7 @@ export default class GameScene extends Phaser.Scene {
     this.bus = new InputBus();
     this.keyboard = new KeyboardInput(this, this.bus);
     this.keyboard.attach();
-    this.touch = new TouchInput(this, this.bus);
+    this.touch = new TouchInput(this, this.bus, storage.getSettings().controlLayout);
     this.touch.attach();
 
     this.board = new BoardRenderer(this);
@@ -89,17 +80,19 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.createPauseButton();
-    this.createPauseOverlay();
 
     this.board.render(this.state);
     this.hud.render(this.state);
 
     const kb = this.input.keyboard;
-    const onPauseKey = (): void => this.togglePause();
+    const onPauseKey = (): void => this.pauseGame();
     if (kb) {
       kb.on('keydown-P', onPauseKey);
       kb.on('keydown-ESC', onPauseKey);
     }
+
+    this.events.on('pause', this.onScenePause, this);
+    this.events.on('resume', this.onSceneResume, this);
 
     this.events.once('shutdown', () => {
       this.keyboard.detach();
@@ -111,17 +104,19 @@ export default class GameScene extends Phaser.Scene {
         kb.off('keydown-P', onPauseKey);
         kb.off('keydown-ESC', onPauseKey);
       }
+      this.events.off('pause', this.onScenePause, this);
+      this.events.off('resume', this.onSceneResume, this);
     });
   }
 
   private createPauseButton(): void {
     const cx = CANVAS_WIDTH - 8 - PAUSE_BTN_W / 2;
     const cy = 24;
-    this.pauseBtnBg = this.add
+    const bg = this.add
       .rectangle(cx, cy, PAUSE_BTN_W, PAUSE_BTN_H, PAUSE_BTN_FILL)
       .setStrokeStyle(1, PAUSE_BTN_STROKE)
       .setInteractive({ useHandCursor: true });
-    this.pauseBtnText = this.add
+    this.add
       .text(cx, cy, 'PAUSE', {
         color: theme.text,
         fontFamily: 'monospace',
@@ -129,66 +124,35 @@ export default class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.pauseBtnBg.on('pointerdown', () => this.togglePause());
-    this.pauseBtnBg.on('pointerover', () =>
-      this.pauseBtnBg.setFillStyle(PAUSE_BTN_HOVER),
-    );
-    this.pauseBtnBg.on('pointerout', () =>
-      this.pauseBtnBg.setFillStyle(PAUSE_BTN_FILL),
-    );
+    bg.on('pointerdown', () => this.pauseGame());
+    bg.on('pointerover', () => bg.setFillStyle(PAUSE_BTN_HOVER));
+    bg.on('pointerout', () => bg.setFillStyle(PAUSE_BTN_FILL));
   }
 
-  private createPauseOverlay(): void {
-    const cx = BOARD_X + BOARD_PIXEL_WIDTH / 2;
-    const cy = BOARD_Y + BOARD_PIXEL_HEIGHT / 2;
-    this.overlayBg = this.add
-      .rectangle(cx, cy, BOARD_PIXEL_WIDTH, BOARD_PIXEL_HEIGHT, 0x000000, 0.75)
-      .setVisible(false)
-      .setInteractive({ useHandCursor: true });
-    this.overlayBg.on('pointerdown', () => this.togglePause());
-
-    this.overlayText = this.add
-      .text(cx, cy - 12, 'PAUSED', {
-        color: theme.text,
-        fontFamily: 'monospace',
-        fontSize: '28px',
-      })
-      .setOrigin(0.5)
-      .setVisible(false);
-
-    this.overlayHint = this.add
-      .text(cx, cy + 24, 'P OR TAP TO RESUME', {
-        color: theme.textMuted,
-        fontFamily: 'monospace',
-        fontSize: '11px',
-      })
-      .setOrigin(0.5)
-      .setVisible(false);
-  }
-
-  private togglePause(): void {
+  private pauseGame(): void {
     if (this.state.phase === 'over' || this.transitioning) return;
-    this.paused = !this.paused;
+    if (this.scene.isPaused()) return;
+    this.scene.launch('PauseScene');
+    this.scene.pause();
+  }
 
-    if (this.paused) {
-      this.bus.clear();
-      this.state = reducer(this.state, { type: 'SetHold', dir: 0 });
-      this.state = reducer(this.state, { type: 'SoftDrop', held: false });
-      this.board.render(this.state);
-      this.hud.render(this.state);
-    } else {
-      this.bus.clear();
-      this.accumMs = 0;
-    }
+  private onScenePause(): void {
+    if (this.input.keyboard) this.input.keyboard.enabled = false;
+    this.bus.clear();
+    this.state = reducer(this.state, { type: 'SetHold', dir: 0 });
+    this.state = reducer(this.state, { type: 'SoftDrop', held: false });
+    this.board.render(this.state);
+    this.hud.render(this.state);
+  }
 
-    this.pauseBtnText.setText(this.paused ? 'RESUME' : 'PAUSE');
-    this.overlayBg.setVisible(this.paused);
-    this.overlayText.setVisible(this.paused);
-    this.overlayHint.setVisible(this.paused);
+  private onSceneResume(): void {
+    if (this.input.keyboard) this.input.keyboard.enabled = true;
+    this.bus.clear();
+    this.accumMs = 0;
   }
 
   override update(_time: number, deltaMs: number): void {
-    if (this.transitioning || this.paused) return;
+    if (this.transitioning) return;
 
     this.accumMs += deltaMs;
     if (this.accumMs > MAX_ACCUM_MS) this.accumMs = MAX_ACCUM_MS;

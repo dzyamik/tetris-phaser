@@ -41,7 +41,7 @@ See [`docs-dev/`](./docs-dev/) for the full architecture, roadmap, game design, 
 - Bottom-left D-pad: ◀ move left · ▼ soft drop · ▶ move right
 - Bottom-right: **B** rotate CCW · **A** rotate CW
 - Top-right: **PAUSE** button
-- Left/right-handed swap comes in the Settings screen (M4).
+- Left/right-handed swap in **Settings** (mirrors the two groups).
 
 ## Deploying
 

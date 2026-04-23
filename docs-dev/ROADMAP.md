@@ -109,16 +109,23 @@ Legend: ☐ not started · ⧗ in progress · ☑ done
 
 ---
 
-## M4 — Meta (menu, pause, high scores, settings) ☐
+## M4 — Meta (menu, pause, high scores, settings) ☑
 
 **Goal:** A complete meta layer.
 
 ### Deliverables
-- `MenuScene` — title, Start, Level Select, Settings, Install (if available).
-- `PauseScene` — overlay on top of `GameScene`; pauses the reducer loop.
-- `src/services/StorageService.ts` — `localStorage` wrapper with a typed schema. Stores: top 10 high scores (name + score + level + lines + date), settings (sound on/off, haptics on/off, starting level, control layout: left/right-handed).
-- Initials entry on new high score (3-letter, NES-style).
-- Settings screen wired to services.
+- `MenuScene` — title, Start, Level Select, Settings, High Scores, Install (if available).
+- `PauseScene` — overlay launched on top of `GameScene`, which is paused via
+  `scene.pause()`. Held input state is reset on pause and input re-enabled on
+  resume.
+- `src/services/StorageService.ts` — `localStorage` wrapper with a typed schema
+  under `tetris.v1.*`. Stores top-10 high scores (name + score + level + lines + date)
+  and settings (haptics on/off, starting level, control layout: right/left-handed).
+  The sound toggle will be wired when M5 lands.
+- Initials entry on new high score (3-letter, NES-style) — keyboard types
+  A–Z with auto-advance; touch taps a slot to cycle forward; arrows navigate.
+- `SettingsScene` — haptics toggle, control layout toggle.
+- `HighScoresScene` — top-10 list with a "NO SCORES YET" empty state.
 
 ### DoD
 - Settings persist across reloads and across PWA re-opens.

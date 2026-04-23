@@ -1,8 +1,8 @@
 import * as Phaser from 'phaser';
 import { CANVAS_WIDTH } from '@/config/layout';
 import { theme } from '@/config/theme';
-import { haptics } from '@/services/HapticsService';
 import { pwa } from '@/services/PWAService';
+import { storage } from '@/services/StorageService';
 
 const BTN_FILL = 0x222222;
 const BTN_STROKE = 0x555555;
@@ -14,7 +14,6 @@ const BTN_ACCENT_HOVER = 0x3a7a3a;
 export default class MenuScene extends Phaser.Scene {
   private level = 0;
   private levelText!: Phaser.GameObjects.Text;
-  private hapticsToggle?: Phaser.GameObjects.Text;
   private installBtnBg?: Phaser.GameObjects.Rectangle;
   private installBtnText?: Phaser.GameObjects.Text;
 
@@ -25,10 +24,12 @@ export default class MenuScene extends Phaser.Scene {
   create(): void {
     this.cameras.main.setBackgroundColor(theme.background);
 
+    this.level = storage.getSettings().startingLevel;
+
     const cx = CANVAS_WIDTH / 2;
 
     this.add
-      .text(cx, 72, 'CLASSIC TETRIS', {
+      .text(cx, 64, 'CLASSIC TETRIS', {
         color: theme.text,
         fontFamily: 'monospace',
         fontSize: '26px',
@@ -36,7 +37,7 @@ export default class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(cx, 104, 'NES-STYLE', {
+      .text(cx, 96, 'NES-STYLE', {
         color: theme.textMuted,
         fontFamily: 'monospace',
         fontSize: '12px',
@@ -44,28 +45,32 @@ export default class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(cx, 168, 'SELECT LEVEL', {
+      .text(cx, 148, 'SELECT LEVEL', {
         color: theme.textMuted,
         fontFamily: 'monospace',
         fontSize: '13px',
       })
       .setOrigin(0.5);
 
-    this.makeArrowButton(cx - 80, 228, '◀', () => this.changeLevel(-1));
-    this.makeArrowButton(cx + 80, 228, '▶', () => this.changeLevel(1));
+    this.makeArrowButton(cx - 80, 208, '◀', () => this.changeLevel(-1));
+    this.makeArrowButton(cx + 80, 208, '▶', () => this.changeLevel(1));
 
     this.levelText = this.add
-      .text(cx, 228, '0', {
+      .text(cx, 208, String(this.level), {
         color: theme.text,
         fontFamily: 'monospace',
-        fontSize: '52px',
+        fontSize: '48px',
       })
       .setOrigin(0.5);
 
-    this.makeAccentButton(cx, 320, 180, 44, 'START', () => this.startGame());
-
-    this.createHapticsToggle(cx, 380);
-    this.createInstallButton(cx, 430);
+    this.makeAccentButton(cx, 298, 200, 44, 'START', () => this.startGame());
+    this.makeSecondaryButton(cx, 354, 180, 36, 'SETTINGS', () =>
+      this.scene.start('SettingsScene'),
+    );
+    this.makeSecondaryButton(cx, 398, 180, 36, 'HIGH SCORES', () =>
+      this.scene.start('HighScoresScene'),
+    );
+    this.createInstallButton(cx);
 
     this.add
       .text(cx, 540, '← → MOVE · Z / X ROTATE · ↓ DROP', {
@@ -133,12 +138,12 @@ export default class MenuScene extends Phaser.Scene {
     height: number,
     label: string,
     onTap: () => void,
-  ): { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text } {
+  ): void {
     const bg = this.add
       .rectangle(cx, cy, width, height, BTN_ACCENT_FILL)
       .setStrokeStyle(1, BTN_ACCENT_STROKE)
       .setInteractive({ useHandCursor: true });
-    const text = this.add
+    this.add
       .text(cx, cy, label, {
         color: theme.text,
         fontFamily: 'monospace',
@@ -153,40 +158,48 @@ export default class MenuScene extends Phaser.Scene {
     bg.on('pointerupoutside', () => bg.setFillStyle(BTN_ACCENT_FILL));
     bg.on('pointerout', () => bg.setFillStyle(BTN_ACCENT_FILL));
     bg.on('pointerover', () => bg.setFillStyle(BTN_ACCENT_HOVER));
-    return { bg, text };
   }
 
-  private createHapticsToggle(cx: number, cy: number): void {
-    if (!haptics.isSupported()) return;
-    this.hapticsToggle = this.add
-      .text(cx, cy, this.hapticsLabel(), {
+  private makeSecondaryButton(
+    cx: number,
+    cy: number,
+    width: number,
+    height: number,
+    label: string,
+    onTap: () => void,
+  ): void {
+    const bg = this.add
+      .rectangle(cx, cy, width, height, BTN_FILL)
+      .setStrokeStyle(1, BTN_STROKE)
+      .setInteractive({ useHandCursor: true });
+    this.add
+      .text(cx, cy, label, {
         color: theme.text,
         fontFamily: 'monospace',
-        fontSize: '13px',
+        fontSize: '14px',
       })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    this.hapticsToggle.on('pointerdown', () => {
-      haptics.toggle();
-      this.hapticsToggle?.setText(this.hapticsLabel());
+      .setOrigin(0.5);
+    bg.on('pointerdown', () => {
+      bg.setFillStyle(BTN_FILL_HOVER);
+      onTap();
     });
+    bg.on('pointerup', () => bg.setFillStyle(BTN_FILL));
+    bg.on('pointerupoutside', () => bg.setFillStyle(BTN_FILL));
+    bg.on('pointerout', () => bg.setFillStyle(BTN_FILL));
+    bg.on('pointerover', () => bg.setFillStyle(BTN_FILL_HOVER));
   }
 
-  private hapticsLabel(): string {
-    return `HAPTICS: ${haptics.isEnabled() ? 'ON' : 'OFF'}`;
-  }
-
-  private createInstallButton(cx: number, cy: number): void {
+  private createInstallButton(cx: number): void {
     this.installBtnBg = this.add
-      .rectangle(cx, cy, 180, 36, BTN_FILL)
+      .rectangle(cx, 442, 180, 32, BTN_FILL)
       .setStrokeStyle(1, BTN_STROKE)
       .setInteractive({ useHandCursor: true })
       .setVisible(false);
     this.installBtnText = this.add
-      .text(cx, cy, 'INSTALL', {
+      .text(cx, 442, 'INSTALL', {
         color: theme.text,
         fontFamily: 'monospace',
-        fontSize: '14px',
+        fontSize: '13px',
       })
       .setOrigin(0.5)
       .setVisible(false);
@@ -210,6 +223,7 @@ export default class MenuScene extends Phaser.Scene {
   private changeLevel(delta: number): void {
     this.level = Math.max(0, Math.min(9, this.level + delta));
     this.levelText.setText(String(this.level));
+    storage.updateSettings({ startingLevel: this.level });
   }
 
   private startGame(): void {

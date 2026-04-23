@@ -1,5 +1,6 @@
 import type * as Phaser from 'phaser';
 import type { InputBus } from './InputBus';
+import type { ControlLayout } from '@/services/StorageService';
 
 const BUTTON_SIZE = 52;
 const BUTTON_FILL = 0x222222;
@@ -9,11 +10,18 @@ const BUTTON_TEXT = '#ffffff';
 
 const ROW_Y = 588;
 
-const LEFT_CX = 42;
-const DOWN_CX = 102;
-const RIGHT_CX = 162;
-const B_CX = 258;
-const A_CX = 318;
+type Positions = {
+  left: number;
+  down: number;
+  right: number;
+  b: number;
+  a: number;
+};
+
+const LAYOUTS: Record<ControlLayout, Positions> = {
+  'right-handed': { left: 42, down: 102, right: 162, b: 258, a: 318 },
+  'left-handed': { b: 42, a: 102, left: 198, down: 258, right: 318 },
+};
 
 type ButtonHandle = {
   bg: Phaser.GameObjects.Rectangle;
@@ -23,6 +31,7 @@ type ButtonHandle = {
 export class TouchInput {
   private readonly scene: Phaser.Scene;
   private readonly bus: InputBus;
+  private readonly layout: ControlLayout;
   private readonly buttons: ButtonHandle[] = [];
 
   private leftPressed = false;
@@ -30,17 +39,19 @@ export class TouchInput {
   private downPressed = false;
   private currentDir: -1 | 0 | 1 = 0;
 
-  constructor(scene: Phaser.Scene, bus: InputBus) {
+  constructor(scene: Phaser.Scene, bus: InputBus, layout: ControlLayout = 'right-handed') {
     this.scene = scene;
     this.bus = bus;
+    this.layout = layout;
   }
 
   attach(): void {
-    this.makeHold('◀', LEFT_CX, (p) => this.setLeft(p));
-    this.makeHold('▼', DOWN_CX, (p) => this.setDown(p));
-    this.makeHold('▶', RIGHT_CX, (p) => this.setRight(p));
-    this.makeTap('B', B_CX, () => this.bus.push({ type: 'Rotate', dir: 'ccw' }));
-    this.makeTap('A', A_CX, () => this.bus.push({ type: 'Rotate', dir: 'cw' }));
+    const pos = LAYOUTS[this.layout];
+    this.makeHold('◀', pos.left, (p) => this.setLeft(p));
+    this.makeHold('▼', pos.down, (p) => this.setDown(p));
+    this.makeHold('▶', pos.right, (p) => this.setRight(p));
+    this.makeTap('B', pos.b, () => this.bus.push({ type: 'Rotate', dir: 'ccw' }));
+    this.makeTap('A', pos.a, () => this.bus.push({ type: 'Rotate', dir: 'cw' }));
   }
 
   detach(): void {
