@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "A classic NES-style Tetris built with Phaser 4, playable offline as a PWA.",
   "type": "module",
-  "homepage": "https://<your-github-username>.github.io/<your-repo-name>/",
+  "homepage": "https://dzyamik.github.io/tetris-phaser/",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

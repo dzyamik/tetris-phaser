@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'node:path';
@@ -8,7 +9,7 @@ import { resolve } from 'node:path';
  * For a custom domain served at the root, use '/'.
  */
 export default defineConfig({
-  base: './',
+  base: '/tetris-phaser/',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -27,6 +28,22 @@ export default defineConfig({
   preview: {
     host: true,
     port: 4173,
+  },
+  test: {
+    globals: true,
+    include: ['tests/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/core/**/*.ts'],
+      exclude: ['src/core/actions.ts'],
+      reporter: ['text', 'html'],
+      thresholds: {
+        statements: 90,
+        branches: 80,
+        functions: 90,
+        lines: 90,
+      },
+    },
   },
   plugins: [
     VitePWA({
