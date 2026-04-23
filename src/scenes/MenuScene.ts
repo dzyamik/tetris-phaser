@@ -16,6 +16,7 @@ export default class MenuScene extends Phaser.Scene {
   private levelText!: Phaser.GameObjects.Text;
   private installBtnBg?: Phaser.GameObjects.Rectangle;
   private installBtnText?: Phaser.GameObjects.Text;
+  private iosHintText?: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -105,7 +106,8 @@ export default class MenuScene extends Phaser.Scene {
       });
     }
 
-    pwa.onAvailabilityChange(() => this.refreshInstallButton());
+    const unsubscribe = pwa.onAvailabilityChange(() => this.refreshInstallButton());
+    this.events.once('shutdown', unsubscribe);
     this.refreshInstallButton();
   }
 
@@ -204,6 +206,16 @@ export default class MenuScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setVisible(false);
 
+    this.iosHintText = this.add
+      .text(cx, 442, 'ADD TO HOME SCREEN:\nSHARE → ADD TO HOME SCREEN', {
+        color: theme.textMuted,
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        align: 'center',
+      })
+      .setOrigin(0.5)
+      .setVisible(false);
+
     this.installBtnBg.on('pointerdown', () => {
       void pwa.prompt().then(() => this.refreshInstallButton());
       this.installBtnBg?.setFillStyle(BTN_FILL_HOVER);
@@ -215,9 +227,16 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   private refreshInstallButton(): void {
-    const available = pwa.canInstall();
-    this.installBtnBg?.setVisible(available);
-    this.installBtnText?.setVisible(available);
+    if (pwa.isInstalled()) {
+      this.installBtnBg?.setVisible(false);
+      this.installBtnText?.setVisible(false);
+      this.iosHintText?.setVisible(false);
+      return;
+    }
+    const canPrompt = pwa.canInstall();
+    this.installBtnBg?.setVisible(canPrompt);
+    this.installBtnText?.setVisible(canPrompt);
+    this.iosHintText?.setVisible(!canPrompt && pwa.isIOS());
   }
 
   private changeLevel(delta: number): void {

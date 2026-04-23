@@ -7,6 +7,8 @@ interface BeforeInstallPromptEvent extends Event {
 
 type Listener = () => void;
 
+type NavigatorWithStandalone = Navigator & { standalone?: boolean };
+
 export class PWAService {
   private deferredPrompt: BeforeInstallPromptEvent | null = null;
   private listeners: Listener[] = [];
@@ -33,11 +35,28 @@ export class PWAService {
   }
 
   isInstalled(): boolean {
-    return this.installed;
+    return this.installed || this.isStandalone();
   }
 
-  onAvailabilityChange(cb: Listener): void {
+  isStandalone(): boolean {
+    if (typeof window === 'undefined') return false;
+    const mq = window.matchMedia?.('(display-mode: standalone)').matches === true;
+    const iosStandalone = (navigator as NavigatorWithStandalone).standalone === true;
+    return mq || iosStandalone;
+  }
+
+  isIOS(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent;
+    return /iPad|iPhone|iPod/.test(ua);
+  }
+
+  onAvailabilityChange(cb: Listener): () => void {
     this.listeners.push(cb);
+    return () => {
+      const idx = this.listeners.indexOf(cb);
+      if (idx >= 0) this.listeners.splice(idx, 1);
+    };
   }
 
   async prompt(): Promise<PromptOutcome | 'unavailable'> {
@@ -51,7 +70,7 @@ export class PWAService {
   }
 
   private notify(): void {
-    for (const cb of this.listeners) cb();
+    for (const cb of this.listeners.slice()) cb();
   }
 }
 

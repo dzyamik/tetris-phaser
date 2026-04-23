@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/tetris-phaser/dev-sw.js?dev-sw', { scope: '/tetris-phaser/', type: 'classic' })
