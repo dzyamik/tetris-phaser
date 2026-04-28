@@ -9,21 +9,26 @@ This project **has no CI/CD**. Deploys are deliberate: build locally → commit 
 
 ---
 
-## The base-path rule (the #1 deploy-day footgun)
+## The base-path rule (relative base by default)
 
-GitHub Pages at `https://<user>.github.io/<repo>/` serves the site under a **subpath**. Vite's `base` must match:
+This project uses a **relative** Vite base so the built `docs/` is portable — it works at any URL (project Pages subpath, custom domain at root, copied into another site, or `file://`):
 
 ```ts
 // vite.config.ts
 export default defineConfig({
-  base: '/tetris-phaser/',   // MUST match the repo slug, with leading + trailing slash
+  base: './',                          // relative — no need to match the repo slug
   build: { outDir: 'docs', emptyOutDir: true },
 });
 ```
 
-For a **custom domain** mapped to repo root, `base: '/'`.
+What this gets you:
+- `docs/index.html` references `./assets/...`, `./favicon.svg`, `./manifest.webmanifest`, `./registerSW.js`.
+- `docs/registerSW.js` registers `./sw.js` with `scope: './'`, so the service worker scopes to whatever URL serves the page.
+- Switching subpath ↔ root ↔ different repo requires **no config change** — just rebuild.
 
-Symptoms of a mismatched base:
+If you ever need an absolute base (e.g., the host can't serve relative URLs from `index.html`), set `base: '/<repo-name>/'` and rebuild — but the relative default is preferred.
+
+Symptoms that you regressed the base config:
 - White screen on the live site, 404s for `/assets/index-abc123.js` in DevTools Network.
 - PWA icons 404 during install.
 - Service worker registers against the wrong scope; offline doesn't work after install.
@@ -74,7 +79,7 @@ Or use `/deploy` which scripts steps 1–3 and leaves the push to the user.
 
 ## Sanity checks before pushing
 
-- [ ] `docs/index.html` exists and its `<script>` / `<link>` tags reference hashed assets under `/<repo>/assets/...`.
+- [ ] `docs/index.html` exists and its `<script>` / `<link>` tags reference hashed assets under `./assets/...` (relative).
 - [ ] `docs/.nojekyll` exists.
 - [ ] `docs/manifest.webmanifest` exists.
 - [ ] Service-worker file exists (`docs/sw.js` or `docs/registerSW.js` — the plugin emits at least one).

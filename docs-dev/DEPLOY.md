@@ -10,12 +10,12 @@
 2. In the repo on GitHub: **Settings → Pages**.
 3. Source: **Deploy from a branch**.
 4. Branch: `main`, folder: `/docs`. Save.
-5. Confirm the repo slug and set it in `vite.config.ts`:
+5. The Vite base is **relative** (`base: './'`), so the built `docs/` works at any URL — project Pages subpath, custom domain at root, or even `file://`. No repo-slug config needed:
 
    ```ts
    // vite.config.ts
    export default defineConfig({
-     base: '/<your-repo-name>/',   // e.g. '/tetris-phaser/'
+     base: './',                    // relative — portable across deploy targets
      build: { outDir: 'docs', emptyOutDir: true },
      // ...
    });
@@ -43,7 +43,7 @@ Or use the slash command (see `.claude/commands/deploy.md`):
 
 ## Sanity checks before pushing
 
-- [ ] `docs/index.html` exists and references hashed assets under `docs/assets/`.
+- [ ] `docs/index.html` exists and references hashed assets under `./assets/` (relative).
 - [ ] `docs/.nojekyll` is present (Vite copies it from `public/`).
 - [ ] `docs/manifest.webmanifest` is present.
 - [ ] `docs/sw.js` or similar (service worker from `vite-plugin-pwa`) is present.
@@ -51,9 +51,9 @@ Or use the slash command (see `.claude/commands/deploy.md`):
 
 ## PWA caveats on GitHub Pages
 
-- The service-worker scope is `/<repo-name>/` by default on project Pages. Make sure `vite-plugin-pwa`'s `scope` and `base` match. If icons 404 on install, 99% it's a base-path mismatch.
+- With `base: './'` the service-worker scope is `./` (relative to `registerSW.js`), so it resolves to whatever URL the page is served from. This works for both project Pages (`/<repo>/`) and custom domains at root with no config change.
 - GitHub Pages serves over HTTPS — good, PWAs need that.
-- Custom domain? Point the domain at Pages, set `base: '/'` in Vite, and delete the repo-slug prefix. Don't forget to bump the service-worker version so clients swap.
+- Switching deploy target (subpath ↔ root ↔ different repo) requires no Vite config edit — just rebuild and push.
 
 ## Rollback
 

@@ -4,12 +4,12 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'node:path';
 
 /**
- * Important: update `base` to match your GitHub repo slug (with trailing slash).
- * Example for https://user.github.io/tetris-phaser/ -> base: '/tetris-phaser/'.
- * For a custom domain served at the root, use '/'.
+ * Relative base — the build works at any URL (project Pages subpath,
+ * custom domain at root, file://, or copied into another site). All
+ * emitted asset URLs in index.html / CSS resolve relative to the document.
  */
 export default defineConfig({
-  base: '/tetris-phaser/',
+  base: './',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
